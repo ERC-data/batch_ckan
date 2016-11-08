@@ -11,11 +11,12 @@ batchdelete <- function(){
 }
 
 batchcreate <- function(){
-  path <- readline(prompt = 'enter to resource folder: ')
+  path <- readline(prompt = 'enter path to resource folder: ')
   files <- dir(path)
   for (f in files){
     filepath <- paste(path, f, sep = '/')
-    print(filepath)
-    resource_create(package_id = mypackage, name = f, upload = filepath)
+    filename <- toupper(gsub("\\..*", "",f))
+    print(paste('...creating ',filepath))
+    resource_create(package_id = mypackage, name = filename, upload = filepath)
   }
 }
