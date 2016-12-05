@@ -38,21 +38,37 @@ metadata <- function(){
         }else{
             write.table(data.frame('Names' = files, 'Description' = rep("", length(files))), paste(path,'metadata.csv',sep='/'), row.names = FALSE, col.names = TRUE)
             print('We have created a metadata.csv file for your dataset. Please add descriptions for your resources.\n')
+            break
         }
     }
 }
 
 batchcreate <- function(dataset = readline('Enter a valid dataset id: \n'), metadata){
+    remove(path, envir = .GlobalEnv)
     setpath()
     match.arg(as.character(metadata), choices = c(TRUE,FALSE))
+    files <- files[-match('metadata.csv', files)] #remove metadata file from list of files
+    print(files)
     for (f in files){
         filepath <- paste(path, f, sep = '/')
         filename <- gsub("\\..*", "",f)
-        dscrptn <- description(filepath, f, metadata)
+        dscrptn <- description(path, f, metadata)
         print(paste('...creating ',filename))
-        resource_create(package_id = dataset, description = dscrptn, name = filename, upload = filepath)
-    }
-}
+        # create resources and check if creation was successful
+        if (exists('test')){
+            remove(test)
+        }
+        count <- 1
+        while(!exists('test') && count < 5){
+            try({
+                r <- resource_create(package_id = dataset, description = dscrptn, name = filename, upload = filepath)
+                test <- resource_show(r$id)
+                print(test)
+                count <- count + 1
+                Sys.sleep(1)
+                })
+        }
+    }}
 
 batchdelete <- function(dataset = readline('Enter a valid dataset id: \n')){
     rsrcs <- package_show(dataset, as = 'table')$resources['id']
@@ -60,3 +76,7 @@ batchdelete <- function(dataset = readline('Enter a valid dataset id: \n')){
         resource_delete(r)
     }
 }
+
+private <- function(dataset){
+    package_patch(x = list(private='true'), dataset)
+    }
