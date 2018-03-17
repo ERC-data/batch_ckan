@@ -1,16 +1,17 @@
 ### Use the ckanr package to remotely maintain the Energy Research Data Portal for South Africa with bulk uploads and deletes
 ### The process for remote bulk uploading of datasets is as follows:
-# 1. source file
-# 2. run ckanr_setup()
+# 1. get your API key from your ckan site
+# 2. run easyckan.R 
 # 3. create new dataset with package_create()
 # 4. create / check for metadata file in local resource folder with metadata()
 # 5. if new metadata file was created, complete descriptions column in the csv file
 # 6. run batchcreate() and hope for SUCCESS!
 
 library(ckanr)
-  
+
 ckanr_setup(url = 'http://energydata.uct.ac.za', key = readline(prompt = 'Enter your apikey: \n'))
 
+#This function sets the path to the directory containing files for upload
 setpath <- function(path){
     if(missing(path)){
         if(exists("path", envir = .GlobalEnv)) {
