@@ -28,9 +28,13 @@ setpath <- function(path){
     assign("uploads", uploads, envir = .GlobalEnv)
 }
 
-metadata <- function(){
-    remove(path, envir = .GlobalEnv)
-    setpath()
+metadata <- function(dirpath){
+    if(missing(dirpath)){
+        remove(path, envir = .GlobalEnv)
+        setpath()
+    } else{
+        setpath(dirpath)
+    }
     if(!is.na(pmatch('metadata', all_files))){
         return('csv')
     }else{
@@ -46,31 +50,34 @@ metadata <- function(){
     }
 }
 
-description <- function(path = path, metadata = TRUE, filematch){
+description <- function(filematch, dirpath = path, metadata = TRUE){
     if(isTRUE(metadata)){
-        metaformat <- metadata()
+        metaformat <- metadata(dirpath)
         switch(metaformat,
-               rdsattr = attr(readRDS(paste(path, filematch, sep = '/')), 'comment'),
-               csv = read.csv(paste(path, 'metadata.csv', sep = '/'), row.names = c('Names'), 
+               rdsattr = attr(readRDS(paste(dirpath, filematch, sep = '/')), 'comment'),
+               csv = read.csv(paste(dirpath, 'metadata.csv', sep = '/'), row.names = c('Names'), 
                               stringsAsFactors = FALSE)[filematch, 'Description'],
                new = stop("You must add descriptions to your metadata file to continue.")
         )}
 }
 
-batchcreate <- function(dataset = readline('Enter a valid dataset id: \n'), metadata = TRUE){
-    remove(path, envir = .GlobalEnv)
-    setpath()
-    match.arg(as.character(metadata), choices = c(TRUE,FALSE))
+batchcreate <- function(dirpath, dataset = readline('Enter a valid dataset id: \n'), meta = TRUE){
+    if(missing(dirpath)){
+        remove(path, envir = .GlobalEnv)
+        setpath()
+    } else{
+        setpath(dirpath)
+    }
+    match.arg(as.character(meta), choices = c(TRUE,FALSE))
     
     # Create a dataframe that contains all the details to upload resources to CKAN
     resources <- data.frame(upload = uploads)
     resources$filepath <- sapply(resources$upload, function(x) paste(path, x, sep = '/'))
     resources$filename <- sapply(resources$upload, function(x) gsub("\\..*", "",x))
-    resources$description <- sapply(resources$upload, function(x) description(path, metadata, x))
+    resources$description <- sapply(resources$upload, function(x) description(x, path, meta))
     
     # Upload the resources to CKAN and save the returned ckan object to an R result object
-    result <- sapply(1:NROW(resources), function(r) resource_create(package_id = dataset, description = resources[r,'description'], 
-                                       name = resources[r,'filename'], upload = resources[r,'filepath']))
+    result <- sapply(1:NROW(resources), function(r) resource_create(package_id = dataset, description = resources[r,'description'], name = resources[r,'filename'], upload = resources[r,'filepath']))
     
     # Check that all resources have uploaded and retry if this is not the case
     for (i in 1:ncol(result)){
@@ -82,7 +89,7 @@ batchcreate <- function(dataset = readline('Enter a valid dataset id: \n'), meta
             finally = print(r)
         )
     }
-    return(list(resources, result))}
+    return(path, list(resources, result))}
 
 batchdelete <- function(dataset = readline('Enter a valid dataset id: \n')){
     rsrcs <- package_show(dataset, as = 'table')$resources['id']
